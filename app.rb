@@ -26,18 +26,21 @@ configure do
 end
 
 use(Rack::Auth::Basic, 'Restricted Area') do |username, password|
-  username == 'minefold' and password == 'carlsmum'
+  (username == 'minefold' and password == 'carlsmum') or
+  (username == 'foo' and password == 'bar')
 end
 
 post '/servers' do
   id = BSON::ObjectId.new
   ts = Time.now
 
-  settings.db['servers'].insert(
-    _id: id,
-    created_at: ts,
-    updated_at: ts
-  )
+  if env['REMOTE_USER'] != 'foo'
+    settings.db['servers'].insert(
+      _id: id,
+      created_at: ts,
+      updated_at: ts
+    )
+  end
 
   content_type :json
   JSON.dump({id: id.to_s, created_at: ts, updated_at: ts})
