@@ -3,6 +3,8 @@ require 'sinatra'
 require 'mongo'
 
 configure do
+  $stdout.sync = true
+
   set :db, begin
     uri = ENV['MONGO_URL'] || 'mongodb://localhost:27017/grayskull_development'
     mongo = ::Mongo::Connection.from_uri(uri)
