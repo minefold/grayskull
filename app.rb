@@ -1,9 +1,16 @@
 require 'json'
 require 'sinatra'
+require 'bugsnag'
 require 'mongo'
 
 configure do
   $stdout.sync = true
+
+  Bugsnag.configure do |config|
+    config.api_key = ENV['BUGSNAG']
+  end
+
+  enable :raise_errors
 
   set :db, begin
     uri = ENV['MONGO_URL'] || 'mongodb://localhost:27017/grayskull_development'
