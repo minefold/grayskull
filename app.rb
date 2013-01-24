@@ -1,7 +1,13 @@
+$:.unshift File.expand_path('../lib', __FILE__)
+
 require 'json'
 require 'sinatra'
 require 'bugsnag'
 require 'mongo'
+require 'snapshot'
+
+require 'sinatra/reloader' if development?
+also_reload 'lib/snapshot.rb'
 
 configure do
   $stdout.sync = true
@@ -51,4 +57,42 @@ post '/servers' do
 
   content_type :json
   JSON.dump({id: id.to_s, created_at: ts, updated_at: ts})
+end
+
+# Arguments
+#   count: optional, default is 10
+#          A limit on the number of snapshots to be returned. Count can range between 1 and 100 snapshots.
+#   offset: optional, default is 0
+#          An offset into your snapshots array. The API will return the requested number of snapshots starting at that offset.
+#   server: optional
+#          Only return snapshots for the server specified by this server ID.
+
+get '/snapshots' do
+  content_type :json
+  limit = (params[:count] || 10).to_i
+  skip = (params[:offset] || 0).to_i
+
+  snapshots = if params[:server]
+    Snapshot.find_by_server(params[:server], skip, limit)
+  else
+    Snapshot.all(skip, limit)
+  end
+
+  JSON.pretty_generate({
+    object: 'list',
+    url: env['REQUEST_PATH'],
+    count: snapshots.size,
+    data: snapshots.map{|s| {
+      snapshot: s.slice('_id', 'url', 'created_at')
+    } }
+  })
+end
+
+class Hash
+  def slice(*keys)
+    keys = keys.map! { |key| convert_key(key) } if respond_to?(:convert_key)
+    hash = self.class.new
+    keys.each { |k| hash[k] = self[k] if has_key?(k) }
+    hash
+  end
 end
