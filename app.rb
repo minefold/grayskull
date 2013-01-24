@@ -6,8 +6,10 @@ require 'bugsnag'
 require 'mongo'
 require 'snapshot'
 
-require 'sinatra/reloader' if development?
-also_reload 'lib/snapshot.rb'
+if development?
+  require 'sinatra/reloader'
+  also_reload 'lib/snapshot.rb'
+end
 
 configure do
   $stdout.sync = true
