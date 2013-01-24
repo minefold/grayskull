@@ -1,30 +1,43 @@
+require 'mongo_ext'
+
 class Snapshot
   def self.all(skip, limit)
-    settings.db['snapshots'].
-      find.
-      skip(skip).
-      limit(limit).to_a
+    snapshots.find.skip(skip).limit(limit).to_a
   end
 
   def self.find_by_server(server_id, skip, limit)
-    e = SnapshotEnumerator.new(settings.db, server_id)
+    e = SnapshotEnumerator.new(server_id)
     e.take(skip)
     e.take(limit)
   end
 
-  def self.oid(id)
-    BSON::ObjectId(id.to_s)
+  def self.delete(id)
+    snapshot = snapshots.find_id(id)
+    child = snapshots.find_one('parent' => Mongo.oid(id))
+
+    if child
+      snapshots.update(
+        { _id: child['_id'] }, {
+          '$set' => { 'parent' => snapshot['parent']
+        }
+      })
+    end
+
+    snapshots.remove(_id: snapshot['_id'])
+    snapshot
   end
+
+  def self.snapshots
+    settings.db['snapshots']
+  end
+
 end
 
 class SnapshotEnumerator
   include Enumerable
 
-  def initialize(db, server_id)
-    @db = db
-    server = settings.db['servers'].
-      find_one(_id: BSON::ObjectId(server_id.to_s))
-
+  def initialize(server_id)
+    server = settings.db['servers'].find_id(server_id)
     @snapshot_id = server['snapshot_id']
   end
 

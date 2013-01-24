@@ -78,14 +78,23 @@ get '/snapshots' do
     Snapshot.all(skip, limit)
   end
 
-  JSON.pretty_generate({
+  json({
     object: 'list',
     url: env['REQUEST_PATH'],
     count: snapshots.size,
     data: snapshots.map{|s| {
-      snapshot: s.slice('_id', 'url', 'created_at')
+      snapshot: s.slice('_id', 'url', 'size', 'created_at')
     } }
   })
+end
+
+delete '/snapshots/:id' do
+  snapshot = Snapshot.delete(params[:id])
+  json(snapshot.slice('_id', 'url', 'size', 'created_at'))
+end
+
+def json(h)
+  JSON.pretty_generate(h)
 end
 
 class Hash
