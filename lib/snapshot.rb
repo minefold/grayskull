@@ -31,6 +31,11 @@ class Snapshot
     settings.db['snapshots']
   end
 
+  def self.to_h(s)
+    {
+      id: s['_id'].to_s,
+    }.merge(s.slice('url', 'size', 'created_at'))
+  end
 end
 
 class SnapshotEnumerator

@@ -21,7 +21,7 @@ configure do
   enable :raise_errors
 
   set :db, begin
-    uri = ENV['MONGO_URL'] || 'mongodb://localhost:27017/grayskull_development'
+    uri = ENV['MONGO_URL'] || 'mongodb://localhost:27017/minefold_development'
     mongo = ::Mongo::Connection.from_uri(uri)
 
     if mongo.is_a? ::Mongo::MongoReplicaSetClient
@@ -42,7 +42,8 @@ end
 
 use(Rack::Auth::Basic, 'Restricted Area') do |username, password|
   (username == 'minefold' and password == 'carlsmum') or
-  (username == 'foo' and password == 'bar')
+  (username == 'foo' and password == 'bar') or
+  (username == ENV['API_TOKEN'])
 end
 
 post '/servers' do
@@ -85,14 +86,14 @@ get '/snapshots' do
     url: env['REQUEST_PATH'],
     count: snapshots.size,
     data: snapshots.map{|s| {
-      snapshot: s.slice('_id', 'url', 'size', 'created_at')
-    } }
+      snapshot: Snapshot.to_h(s)
+    }}
   })
 end
 
 delete '/snapshots/:id' do
-  snapshot = Snapshot.delete(params[:id])
-  json(snapshot.slice('_id', 'url', 'size', 'created_at'))
+  s = Snapshot.delete(params[:id])
+  json(Snapshot.to_h(s))
 end
 
 def json(h)
